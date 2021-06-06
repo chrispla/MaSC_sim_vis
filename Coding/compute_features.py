@@ -1,3 +1,8 @@
+'''
+Compute features from audio
+June 2018
+'''
+
 import glob
 import numpy as np
 import librosa
@@ -15,7 +20,7 @@ positive = ['y', 'Y', 'yes', 'Yes', 'YES']
 
 #Find how many .wav files there are
 n_files = 0
-for root, dirs, files in os.walk('.'):
+for root, dirs, files in os.walk('.'): #change directory here
 	for name in files:
 		if '.wav' in name:
 			n_files += 1
@@ -32,14 +37,9 @@ def compute_MFCCs(y, sr):
 	#MFCCs
 	MFCCs = librosa.feature.mfcc(y = y, sr = sr, hop_length = 2205, n_mfcc = 13)
 
-	#Write the ndarray to a .csv
-	file = open('MFCCs.csv', 'a', encoding='utf-8')
-	for i in range(MFCCs.shape[0]):
-		for j in range(MFCCs.shape[1]):
-			file.write(str(MFCCs[i,j]))
-			file.write(',')
-	file.write('\n')
-	file.close()
+	#Write to file
+	array_to_file_nd(MFCCs, 'MFCCs.csv')
+
 
 def compute_STFTs(y):
 
@@ -49,28 +49,16 @@ def compute_STFTs(y):
 	#Convert the power spectrogram to decibel units
 	STFTs_db = librosa.core.power_to_db(S = STFTs)
 
-	#Write the ndarray to a .csv
-	file = open('STFTs_db.csv', 'a', encoding='utf-8')
-	for i in range(STFTs_db.shape[0]):
-		for j in range(STFTs_db.shape[1]):
-			file.write(str(STFTs_db[i,j]))
-			file.write(',')
-	file.write('\n')
-	file.close()
+	#Write to file
+	array_to_file_nd(STFTs_db, 'STFTs_db.csv')
 
 def compute_chroma(y, sr):
 
 	#chroma
 	chroma = librosa.feature.chroma_cqt(y = y, sr = sr, hop_length = 512, n_chroma = 48, n_octaves = 7)
 
-	#Write the ndarray to a .csv
-	file = open('chroma.csv', 'a', encoding='utf-8')
-	for i in range(chroma.shape[0]):
-		for j in range(chroma.shape[1]):
-			file.write(str(chroma[i,j]))
-			file.write(',')
-	file.write('\n')
-	file.close()
+	#Write to file
+	array_to_file_nd(chroma, 'chroma.csv')
 
 
 def standardize(input_file, output_file):
@@ -89,15 +77,42 @@ def standardize(input_file, output_file):
 	scaler = StandardScaler()
 	scaled = scaler.fit_transform(data)
 
-	file = open(output_file, 'a', encoding='utf-8')
-	for i in range(scaled.shape[0]):
-		for j in range(scaled.shape[1]):
-			file.write(str(scaled[i,j]))
+	#Write to file
+	array_to_file(scaled, output_file)
+
+	return scaled
+
+
+def array_to_file_nd(array, output_name):
+
+	file = open(output_name, 'a', encoding='utf-8')
+	for i in range(array.shape[0]):
+		for j in range(array.shape[1]):
+			file.write(str(array[i,j]))
+			file.write(',')
+	file.write('\n')
+	file.close()
+
+def array_to_file(array, output_name):
+
+	file = open(output_name, 'a', encoding='utf-8')
+	for i in range(array.shape[0]):
+		for j in range(array.shape[1]):
+			file.write(str(array[i,j]))
 			file.write(',')
 		file.write('\n')
 	file.close()
 
-	return scaled
+
+def join_arrays(array1, array2, rows):
+
+	array = np.append(array1[0], array2[0])
+	for row in range(rows-1):
+		temp_row = np.append(array1[row+1], array2[row+1])
+		array = np.vstack((array, temp_row))
+
+	return array
+
 
 
 def plot(input_file, artists, titles, directories):
@@ -201,17 +216,14 @@ def plot(input_file, artists, titles, directories):
 
 	p2.legend.location = "top_left"
 #	layout = row(p1, p2)
-
 #	show(layout)
-
 	show(p1)
+
+
 
 def cluster(input):
 
 	clustered = KMeans().fit_transform(input)
-
-#	s1 = ColumnDataSource(data = dict(x = x, y = y, desc = names, arts = artists))
-#	p1 = figure(tools = [hover,"lasso_select", "reset", tap, "wheel_zoom"], title = "Music Collections")
 
 
 #------PARAMETERS------#
@@ -236,10 +248,11 @@ answer_STFTs = input('2. Do you want to compute the power spectrogram? y/n\n')
 
 answer_chroma = input('3. Do you want to compute the Constant-Q chromagram? y/n\n')
 
-answer_plot_MFCCs = input('--- Do you want to plot the MFCCs and Chromagram?\n')
+answer_plot_MFCCs = input('--- Do you want to plot the MFCCs and Chromagram? y/n\n')
 
-answer_plot_STFTs = input('--- Do you want to plot the STFTs and Chromagram?\n')
+answer_plot_STFTs = input('--- Do you want to plot the STFTs and Chromagram? y/n\n')
 
+answer_plot_chroma = input('--- Do you want to plot the Chromagram? y/n\n')
 
 
 
@@ -295,51 +308,49 @@ if (answer_MFCCs in positive) or (answer_STFTs in positive) or (answer_chroma in
 	#Join & plot MFCCs and chromagram
 	if answer_plot_MFCCs in positive:
 
+		#Join the 2 arrays
 		print('Joining MFCCs and chromagram...')
-		MFCCs_chroma = np.append(scaled_MFCCs[0], scaled_chroma[0])
-		for row in range(n_files-1):
-			temp_row = np.append(scaled_MFCCs[row+1], scaled_chroma[row+1])
-			MFCCs_chroma = np.vstack((MFCCs_chroma, temp_row))
+		MFCCs_chroma = join_arrays(scaled_MFCCs, scaled_chroma, n_files)
 
 		#Dimensionality reduction to d=2
-		MFCCs_chroma_reduced = TSNE(n_components=2).fit_transform(MFCCs_chroma)
+		MFCCs_chroma_reduced = TSNE(n_components=2, perplexity = 10.0).fit_transform(MFCCs_chroma)
 
 		#Write the reduced array to a .csv
-		file = open('MFCCs_reduced.csv', 'a', encoding='utf-8')
-		for i in range(MFCCs_chroma_reduced.shape[0]):
-			for j in range(MFCCs_chroma_reduced.shape[1]):
-				file.write(str(MFCCs_chroma_reduced[i,j]))
-				file.write(',')
-			file.write('\n')
-		file.close()
+		array_to_file(MFCCs_chroma_reduced, 'MFCCs_chroma_reduced.csv')
 
 		#Plot
-		print('Plotting MFFCs and chromagram...')
-		plot('MFCCs_reduced.csv', artists, titles, directories)
+		print('Plotting MFCCs and chromagram...')
+		plot('MFCCs_chroma_reduced.csv', artists, titles, directories)
 
 
 	#Join & plot STFTs and chromagram
 	if answer_plot_STFTs in positive:
+
+		#Join the 2 arrays
 		print('Joining STFTs and chromagram...')
-		STFTs_chroma = np.append(scaled_STFTs[0], scaled_chroma[0])
-		for row in range(n_files-1):
-			temp_row = np.append(scaled_STFTs[row+1], scaled_chroma[row+1])
-			STFTs_chroma = np.vstack((STFTs_chroma, temp_row))
+		STFTs_chroma = join_arrays(scaled_STFTs, scaled_chroma, n_files)
 
 		#Dimensionality reduction to d=2
 		STFTs_chroma_reduced = TSNE(n_components=2).fit_transform(STFTs_chroma)
 
-		#Write the reduced array to a .csv
-		file = open('STFTs_reduced.csv', 'a', encoding='utf-8')
-		for i in range(STFTs_chroma_reduced.shape[0]):
-			for j in range(STFTs_chroma_reduced.shape[1]):
-				file.write(str(STFTs_chroma_reduced[i,j]))
-				file.write(',')
-			file.write('\n')
-		file.close()
+		#Write to file
+		array_to_file(STFTs_chroma_reduced, 'STFTs_chroma_reduced.csv')
 
 		#Plot
 		print('Plotting STFTs and chromagram...')
-		plot('STFTs_reduced.csv', artists, titles, directories)
+		plot('STFTs_chroma_reduced.csv', artists, titles, directories)
 
+
+	#Plot chromagram
+	if answer_plot_chroma in positive:
+
+		#Dimensionality reduction to 2
+		chroma_reduced = TSNE(n_components=2, perplexity = 10.0).fit_transform(scaled_chroma)
+
+		#Write to file
+		array_to_file(chroma_reduced, 'chroma_reduced.csv')
+
+		#Plot
+		print('Plotting chromagram...')
+		plot('chroma_reduced.csv', artists, titles, directories)
 
