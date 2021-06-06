@@ -1,5 +1,5 @@
 '''
-Compute features from audio
+Compute features from audio, write to file, and plot
 June 2018
 '''
 
