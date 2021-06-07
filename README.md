@@ -9,7 +9,7 @@
 
 ```autoencoder_t_SNE```: Compute mel spectrogram from audio, take bottleneck of autoencoder, reduce dimension to 2, and plot alongside intensity
 
-```compute_features.py```: Compute, save, and plot STFT, chroma, and MFCC
+```compute_features.py```: Compute, save, and plot STFT, chroma, and MFCC from audio
 
-```startAD_demo.ipynb```: Independent similarity axis traversal visualization of MFCC and chroma for startAD demo
+```startAD_demo.ipynb```: Independent similarity axis traversal visualization of MFCC and chroma from audio for startAD demo
 
