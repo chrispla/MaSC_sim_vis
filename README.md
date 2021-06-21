@@ -1,4 +1,4 @@
-# MasC Compendium Visualization
+# MaSC Compendium Visualization
 #### A collection of scripts for visualizing the Arab Mashriq collection of the NYU Abu Dhabi Library and the Eisenberg collection
 
 ```mfcc_t-SNE.ipynb```: Compute MFCC from audio, reduce dimension to 2 with t-SNE, and plot
