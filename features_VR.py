@@ -32,8 +32,6 @@ for root, dirs, files in os.walk(audio_dir): #Change audio file directory here
             filepath = os.path.join(root, name)
             all_paths.append(filepath)
             all_names.append(name[:-4])
-        if (len(all_paths) > 20):
-            break
 
 file_no = len(all_paths)
 print("Number of files:", file_no)
